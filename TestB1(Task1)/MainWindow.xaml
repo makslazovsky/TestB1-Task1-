@@ -23,7 +23,7 @@
             </TextBlock>
             <Button Name="SumIntBtn" Click="SumIntBtn_Click">Сумма всех целых чисел </Button>
             <Button Name="MedianDeciamlBtn" Click="MedianDeciamlBtn_Click">Медиана всех дробных чисел</Button>
-            <TextBox Name="OutputText" IsReadOnly="True"></TextBox>
+            <TextBox Name="OutputText" IsReadOnly="True" x:FieldModifier="public"> </TextBox>
         </StackPanel>
         
 
