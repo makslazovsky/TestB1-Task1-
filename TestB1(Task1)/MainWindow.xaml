@@ -8,22 +8,22 @@
         Title="MainWindow" Height="450" Width="800">
     <Grid>
         <StackPanel>
-            <Button Name="CreateFileBtn" Click="CreateFileBtn_Click">Создать файлы</Button>
+            <Button Name="CreateFileBtn" Command="{Binding FileCreateCommand}">Создать файлы</Button>
             <TextBox Name="CombineTB">   </TextBox>
             <Button Name="CombineFileBtn" Click="CombineFileBtn_Click">Объединить файлы</Button>
             <Button Name="ImportFileBtn" Click="ImportFileBtn_Click">Импортировать файлы</Button>
-            <ProgressBar x:Name="progressBar" Height="20" Minimum="0" Maximum="1" Value="{Binding Progress}" />
+            <ProgressBar x:Name="progressBar" Height="20" Minimum="0" Maximum="100" Value="{Binding ProgressPercent}"  />
             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}Выполнено:{0}/{1}">
-                        <Binding Path="Value" ElementName= "progressBar"/>
-                        <Binding Path="Maximum" ElementName="progressBar" />
+                        <Binding Path="Progress" />
+                        <Binding Path="ProgressMax" />
                     </MultiBinding>
                 </TextBlock.Text>
             </TextBlock>
             <Button Name="SumIntBtn" Click="SumIntBtn_Click">Сумма всех целых чисел </Button>
             <Button Name="MedianDeciamlBtn" Click="MedianDeciamlBtn_Click">Медиана всех дробных чисел</Button>
-            <TextBox Name="OutputText" IsReadOnly="True" x:FieldModifier="public"> </TextBox>
+            <TextBox Name="OutputText" IsReadOnly="True" Text="{Binding Text}" x:FieldModifier="public"> </TextBox>
         </StackPanel>
         
 

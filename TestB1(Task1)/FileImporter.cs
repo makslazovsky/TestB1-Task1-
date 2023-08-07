@@ -1,90 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Configuration;
-using System.Windows.Controls;
+using TestB1_Task1_.Interfaces;
+using TestB1_Task1_.Model;
 
 namespace TestB1_Task1_
 {
     class FileImporter
     {
-        private static string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-        private static TextBox _outputTB;
-        private static ProgressBar _progressBar;
-        static DataTable DataTable1;
+        private IProgressReporter progressReporter;
+        private IDBAccessor dBAccessor;
 
-        public FileImporter(TextBox OutputTB, ProgressBar progressBar)
+        public FileImporter(IProgressReporter progressReporter, IDBAccessor dBAccessor)
         {
-            _outputTB = OutputTB;
-            _progressBar = progressBar;
+            this.progressReporter = progressReporter;
+            this.dBAccessor = dBAccessor;
         }
-        public static async Task CallStoredProcedure3Async(string filePath)
+        public async Task CallStoredProcedure3Async(string filePath)
         {
             int bulkSize = 250;
-
-            DataTable1 = new DataTable("TableTask1");
-
-
-            DataColumn Date = new DataColumn("Date");
-            DataTable1.Columns.Add(Date);
-            DataColumn EngSym = new DataColumn("EngSym");
-            DataTable1.Columns.Add(EngSym);
-            DataColumn RusSym = new DataColumn("RusSym");
-            DataTable1.Columns.Add(RusSym);
-            DataColumn UEvenInt = new DataColumn("UEvenInt");
-            DataTable1.Columns.Add(UEvenInt);
-            DataColumn UDecimal = new DataColumn("UDecimal");
-            DataTable1.Columns.Add(UDecimal);
-            DataColumn Id = new DataColumn("Id");
-            DataTable1.Columns.Add(Id);
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            long totalCount = 0;
+            
+            using (StreamReader reader = new StreamReader(filePath))
             {
-                await connection.OpenAsync();
-
-                using (SqlBulkCopy sqlBulkCopy = new SqlBulkCopy(connection))
+                char x;
+                while (!reader.EndOfStream)
                 {
-                    sqlBulkCopy.DestinationTableName = "dbo.TableTask1";
-
-                    using (StreamReader reader = new StreamReader(filePath))
+                    x = (char)reader.Read();
+                    if (x=='\n')
                     {
-                        string line;
-                        int totalCount = File.ReadLines(filePath).Count();
-                        _progressBar.Maximum = totalCount;
-                        int currentCount = 0;
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            // разделение строки на параметры
-                            string[] parameters = line.Split(new string[] { "||" }, StringSplitOptions.None);
-                            // добавление параметров в хранимую процедуру
-                            DataTable1.Rows.Add(currentCount,
-                                                DateTime.Parse(parameters[0]),
-                                                parameters[1],
-                                                parameters[2],
-                                                parameters[3],
-                                                decimal.Parse(parameters[4]));
-
-                            currentCount++;
-
-                            if (currentCount % bulkSize == 0)
-                            {
-                                //Запись на сервер
-                                await sqlBulkCopy.WriteToServerAsync(DataTable1);
-                                DataTable1.Clear();
-                                _progressBar.Dispatcher.Invoke(() =>
-                                {
-                                    _progressBar.Value = currentCount;
-                                });
-                            }
-                        }
-                    }                  
+                        totalCount++;
+                    }
                 }
             }
+            progressReporter.SetMaxProgress(totalCount);
+            using (StreamReader reader = new StreamReader(filePath))
+            {
+                string fileLine;
+                
+                
+                int currentCount = 0;
+                List<Line> lines = new List<Line>();
+                while ((fileLine = reader.ReadLine()) != null)
+                {
+                    // разделение строки на параметры
+                    string[] parameters = fileLine.Split(new string[] { "||" }, StringSplitOptions.None);
+                    // добавление параметров в хранимую процедуру
+                    Line line = new Line
+                    {
+                        Date = DateTime.Parse(parameters[0]),
+                        EngSym = parameters[1],
+                        RusSym = parameters[2],
+                        UEvenInt = parameters[3],
+                        UDecimal = parameters[4]
+                    };
+                    lines.Add(line);
+                    currentCount++;
+
+                    if (currentCount % bulkSize == 0)
+                    {
+                        await dBAccessor.UploadFileLines(lines);
+                        lines.Clear();
+                        progressReporter.SetCurrentProgress(currentCount);
+                    }
+                }
+                if (lines.Any())
+                {
+                    await dBAccessor.UploadFileLines(lines);
+                    progressReporter.SetCurrentProgress(currentCount);
+                }
+            }                             
         }
     }
 }

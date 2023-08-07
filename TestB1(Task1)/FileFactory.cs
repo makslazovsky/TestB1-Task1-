@@ -1,34 +1,32 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows.Controls;
+using TestB1_Task1_.Interfaces;
 
 namespace TestB1_Task1_
 {
     class FileFactory
     {
-        private static readonly Random random = new Random();
-        const int fileCount = 100;
-        const int lineCount = 100000;
-        const int halfIntBound = 50000000;
-        const int decimalBound = 19;
+        private readonly Random random = new Random();
         const string charsEN = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const string charsRU = "абвгдеёжзийклмнопрстуфхцчшщьыъэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-        private static TextBox _outputTB;
-        private static ProgressBar _progressBar;
-
-        public FileFactory(TextBox OutputTB, ProgressBar progressBar)
+        private IProgressReporter progressReporter;
+        private int halfIntBound;
+        private int decimalBound;
+        public FileFactory(IProgressReporter progressReporter, int halfIntBound, int decimalBound)
         {
-            _outputTB = OutputTB;
-            _progressBar = progressBar;
+            this.progressReporter = progressReporter;
+            this.halfIntBound = halfIntBound;
+            this.decimalBound = decimalBound;
         }
 
 
-        public static async Task FileCreate()
+        public async Task FileCreate(int fileCount, int lineCount)
         {
             string baseDirectory = Directory.GetCurrentDirectory();
             string outputPath = Path.Combine(baseDirectory, "Output");
-            _progressBar.Maximum = fileCount;
+
+            progressReporter.SetMaxProgress(fileCount);
             Directory.CreateDirectory(outputPath);
             try
             {
@@ -44,22 +42,20 @@ namespace TestB1_Task1_
                             await writer.WriteLineAsync(line);
 
                            
-                        } 
-                        _progressBar.Dispatcher.Invoke(() =>
-                        {
-                            _progressBar.Value = fileIndex;
-                        });
+                        }
+                        progressReporter.SetCurrentProgress(fileIndex);
+                       
                     }
                 }
-                _outputTB.Text = "Файлы успешно созданы";
+                progressReporter.SetText("Файлы успешно созданы");
             }
             catch (Exception ex)
             {
-                _outputTB.Text = $"Ошибка при создании файлов: {ex.Message}";
+                progressReporter.SetText($"Ошибка при создании файлов: {ex.Message}");
             }
         }
 
-        private static string GenerateRandomLine()
+        private string GenerateRandomLine()
         {
             DateTime randomDate = GenerateRandomDate();
             string randomLatin = GenerateRandomEngString(10);
@@ -70,7 +66,7 @@ namespace TestB1_Task1_
             return $"{randomDate:dd.MM.yyyy}||{randomLatin}||{randomRussian}||{randomNumber}||{randomDecimal:F8}";
         }
 
-        private static DateTime GenerateRandomDate()
+        private DateTime GenerateRandomDate()
         {
             DateTime startDate = DateTime.Now.AddYears(-5);
             int totalDays = (DateTime.Today - startDate).Days;
@@ -78,7 +74,7 @@ namespace TestB1_Task1_
             return startDate.AddDays(random.Next(totalDays));
         }
 
-        private static string GenerateRandomEngString(int length)
+        private string GenerateRandomEngString(int length)
         {
             char[] randomChars = new char[length];
             for (int i = 0; i < length; i++)
@@ -88,7 +84,7 @@ namespace TestB1_Task1_
             return new string(randomChars);
         }
 
-        private static string GenerateRandomRusString(int length)
+        private string GenerateRandomRusString(int length)
         {
             char[] randomChars = new char[length];
             for (int i = 0; i < length; i++)
@@ -98,13 +94,13 @@ namespace TestB1_Task1_
 
             return new string(randomChars);
         }
-        private static int GenerateRandomPositiveEvenNumber()
+        private int GenerateRandomPositiveEvenNumber()
         {
             int number = random.Next(1, halfIntBound) * 2;
             return number;
         }
 
-        private static decimal GenerateRandomDecimal()
+        private decimal GenerateRandomDecimal()
         {
             double number = random.NextDouble() * decimalBound + 1;
             return (decimal)number;

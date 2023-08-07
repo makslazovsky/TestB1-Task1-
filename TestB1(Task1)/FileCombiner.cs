@@ -3,25 +3,46 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Controls;
+using TestB1_Task1_.Interfaces;
 
 namespace TestB1_Task1_
 {
     class FileCombiner
     {
-        private static TextBox _outputTB;
-        private static ProgressBar _progressBar;
+        private IProgressReporter progressReporter;
 
-        public FileCombiner(TextBox OutputTB, ProgressBar progressBar)
+        public FileCombiner(IProgressReporter progressReporter)
         {
-            _outputTB = OutputTB;
-            _progressBar = progressBar;
+            this.progressReporter = progressReporter;
+        }
+        public async Task CombineSaveFileAsync(string TBtext)
+        {
+            try
+            {
+                string outputDirectory = "Output"; // Указываем папку Output в базовой директории
+
+                string[] files = Directory.GetFiles(outputDirectory); // Получаем список файлов из папки Output
+
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    string outputPath = saveFileDialog.FileName;
+                    await CombineFilesAsync(outputPath, files, TBtext);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                progressReporter.SetText($"Ошибка при объединении файлов: {ex.Message}");
+            }
+
         }
 
-        private static async Task CombineFilesAsync(string outputPath, string[] filesToMerge, string patternToDelete)
+        private async Task CombineFilesAsync(string outputPath, string[] filesToMerge, string patternToDelete)
         {
             int currentCount = 0;
-            _progressBar.Maximum = filesToMerge.GetLength(0);
+            progressReporter.SetMaxProgress(filesToMerge.Length);
             int deletedLinesCount = 0;
             try
             {
@@ -43,43 +64,18 @@ namespace TestB1_Task1_
                             }
                         }
                         currentCount++;
-                        _progressBar.Dispatcher.Invoke(() =>
-                        {
-                            _progressBar.Value = currentCount;
-                        });
+                        progressReporter.SetCurrentProgress(currentCount);
                     }
                 }
-                _outputTB.Text = $"Удалено {deletedLinesCount} линий ";
-                _outputTB.Text += "\nФайлы объеденены";
+                progressReporter.SetText($"Удалено {deletedLinesCount} линий ");
+                progressReporter.AppendText("Файлы объеденены");
             }
             catch (Exception ex)
             {
-                _outputTB.Text = $"Ошибка при объединении файлов: {ex.Message}";
+                progressReporter.SetText($"Ошибка при объединении файлов: {ex.Message}");
             }
         }
 
-        public static async void CombineSaveFileAsync(string TBtext)
-        {
-            try
-            {
-                string outputDirectory = "Output"; // Указываем папку Output в базовой директории
-
-                string[] files = Directory.GetFiles(outputDirectory); // Получаем список файлов из папки Output
-
-                SaveFileDialog saveFileDialog = new SaveFileDialog();
-
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    string outputPath = saveFileDialog.FileName;
-                    await CombineFilesAsync(outputPath, files, TBtext);
-
-                }
-            }
-            catch (Exception ex)
-            {
-                _outputTB.Text = $"Ошибка при объединении файлов: {ex.Message}";
-            }
-
-        }
+       
     }
 }
